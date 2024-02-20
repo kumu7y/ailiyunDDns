@@ -23,7 +23,8 @@ type Config struct {
 	APIURL       string `json:"apiURL"`
 	RecordType   string `json:"recordType"`
 	RR           string `json:"rr"`
-	Delay        int    `json:"delay"` // 延迟时间（分钟）
+	Delay        int    `json:"delay"`
+	TimeUnit     string `json:"timeUnit"` // 延迟时间单位
 }
 
 // 默认的配置文件内容
@@ -35,7 +36,8 @@ var defaultConfig = Config{
 	APIURL:       "https://api.ipify.org/?format=json",
 	RecordType:   "A",
 	RR:           "*",
-	Delay:        1, // 默认延迟1分钟
+	Delay:        1,
+	TimeUnit:     "minute",
 }
 
 // 自定义的无需更新错误
@@ -181,7 +183,13 @@ func main() {
 		}
 
 		// 延迟一定时间
-		time.Sleep(time.Duration(config.Delay) * time.Minute)
+		sleepDuration, err := getSleepDuration(config.Delay, config.TimeUnit)
+		if err != nil {
+			log.Println("Failed to get sleep duration:", err)
+			sleepDuration = 1 * time.Minute // 默认延迟1分钟
+		}
+
+		time.Sleep(sleepDuration)
 	}
 }
 
@@ -210,4 +218,18 @@ func saveDefaultConfig(filePath string) error {
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(defaultConfig)
 	return err
+}
+
+// 获取延迟的时间
+func getSleepDuration(delay int, timeUnit string) (time.Duration, error) {
+	switch timeUnit {
+	case "second":
+		return time.Duration(delay) * time.Second, nil
+	case "minute":
+		return time.Duration(delay) * time.Minute, nil
+	case "hour":
+		return time.Duration(delay) * time.Hour, nil
+	default:
+		return 0, errors.New("unknown time unit")
+	}
 }
