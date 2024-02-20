@@ -21,6 +21,9 @@ type Config struct {
 	DomainName   string `json:"domainName"`
 	LogFileName  string `json:"logFileName"`
 	APIURL       string `json:"apiURL"`
+	RecordType   string `json:"recordType"`
+	RR           string `json:"rr"`
+	Delay        int    `json:"delay"` // 延迟时间（分钟）
 }
 
 // 默认的配置文件内容
@@ -30,6 +33,9 @@ var defaultConfig = Config{
 	DomainName:   "your_domain_name",
 	LogFileName:  "DDns.log",
 	APIURL:       "https://api.ipify.org/?format=json",
+	RecordType:   "A",
+	RR:           "*",
+	Delay:        1, // 默认延迟1分钟
 }
 
 // 自定义的无需更新错误
@@ -60,7 +66,7 @@ func getPublicIP(apiURL string) (string, error) {
 	return ip, nil
 }
 
-func updateDNSRecord(client *alidns.Client, domainName, publicIP string) error {
+func updateDNSRecord(client *alidns.Client, domainName, publicIP, recordType, rr string) error {
 	describeRequest := alidns.CreateDescribeDomainRecordsRequest()
 	describeRequest.Scheme = "https"
 	describeRequest.DomainName = domainName
@@ -72,8 +78,9 @@ func updateDNSRecord(client *alidns.Client, domainName, publicIP string) error {
 	}
 
 	// 遍历解析记录，找到需要更新的记录
+	var foundRecord bool
 	for _, record := range records.DomainRecords.Record {
-		if record.Type == "A" && record.RR == "*" {
+		if record.Type == recordType && record.RR == rr {
 			// 只有当当前IP和记录IP不一样时才执行更新操作
 			if record.Value == publicIP {
 				log.Println("Current IP is the same as the record IP. No update needed.")
@@ -91,6 +98,19 @@ func updateDNSRecord(client *alidns.Client, domainName, publicIP string) error {
 			_, err := client.UpdateDomainRecord(updateRequest)
 			return err
 		}
+	}
+
+	// 如果未找到记录，则添加新的 DNS 记录
+	if !foundRecord {
+		addRequest := alidns.CreateAddDomainRecordRequest()
+		addRequest.Scheme = "https"
+		addRequest.DomainName = domainName
+		addRequest.Type = recordType
+		addRequest.RR = rr
+		addRequest.Value = publicIP
+
+		_, err := client.AddDomainRecord(addRequest)
+		return err
 	}
 
 	return fmt.Errorf("DNS record not found")
@@ -145,7 +165,7 @@ func main() {
 		} else {
 			fileLogger.Printf("Public IP: %s\n", publicIP)
 
-			err := updateDNSRecord(client, domainName, publicIP)
+			err := updateDNSRecord(client, domainName, publicIP, config.RecordType, config.RR)
 			if err != nil {
 				if err != ErrNoUpdateNeeded {
 					fileLogger.Printf("Failed to update DNS record: %v\n", err)
@@ -160,7 +180,8 @@ func main() {
 			}
 		}
 
-		time.Sleep(1 * time.Minute)
+		// 延迟一定时间
+		time.Sleep(time.Duration(config.Delay) * time.Minute)
 	}
 }
 
