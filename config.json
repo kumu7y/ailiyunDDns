@@ -7,5 +7,5 @@
     "recordType": "A",
     "rr": "*",
     "delay": 1,
-    "timeUnit":"second"
+    "timeUnit":"minute"
 }
