@@ -2,7 +2,7 @@
     "accessKey": "your_access_key",
     "accessSecret": "your_access_secret",
     "domainName": "your_domain_name",
-    "logFileName": "DDns.log",
+    "logPath": "DDns.log",
     "apiURL": "https://api.ipify.org/?format=json",
     "recordType": "A",
     "rr": "*",

@@ -19,7 +19,7 @@ type Config struct {
 	AccessKey    string `json:"accessKey"`
 	AccessSecret string `json:"accessSecret"`
 	DomainName   string `json:"domainName"`
-	LogFileName  string `json:"logFileName"`
+	LogPath      string `json:"logPath"`
 	APIURL       string `json:"apiURL"`
 	RecordType   string `json:"recordType"`
 	RR           string `json:"rr"`
@@ -32,7 +32,7 @@ var defaultConfig = Config{
 	AccessKey:    "your_access_key",
 	AccessSecret: "your_access_secret",
 	DomainName:   "your_domain_name",
-	LogFileName:  "DDns.log",
+	LogPath:      "DDns.log",
 	APIURL:       "https://api.ipify.org/?format=json",
 	RecordType:   "A",
 	RR:           "*",
@@ -137,7 +137,10 @@ func main() {
 	}
 
 	// 打开日志文件
-	logFilePath := filepath.Join(config.LogFileName)
+	logFilePath := config.LogPath
+	if logFilePath == "" {
+		logFilePath = "DDns.log"
+	}
 	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatal("Failed to open log file:", err)
@@ -165,14 +168,10 @@ func main() {
 		if err != nil {
 			fileLogger.Println("Failed to get public IP:", err)
 		} else {
-			fileLogger.Printf("Public IP: %s\n", publicIP)
-
 			err := updateDNSRecord(client, domainName, publicIP, config.RecordType, config.RR)
 			if err != nil {
 				if err != ErrNoUpdateNeeded {
 					fileLogger.Printf("Failed to update DNS record: %v\n", err)
-				} else {
-					fileLogger.Println("No update needed")
 				}
 			} else {
 				fileLogger.Println("DNS record updated successfully")
