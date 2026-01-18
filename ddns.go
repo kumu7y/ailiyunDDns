@@ -141,6 +141,16 @@ func main() {
 	if logFilePath == "" {
 		logFilePath = "DDns.log"
 	}
+
+	// 确保日志目录存在
+	logDir := filepath.Dir(logFilePath)
+	if logDir != "." && logDir != "" {
+		err := os.MkdirAll(logDir, 0755)
+		if err != nil {
+			log.Fatal("Failed to create log directory:", err)
+		}
+	}
+
 	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatal("Failed to open log file:", err)
