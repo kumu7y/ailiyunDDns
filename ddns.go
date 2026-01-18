@@ -176,11 +176,13 @@ func main() {
 		fmt.Printf("Public IP: %s\n", publicIP)
 
 		if err != nil {
+			log.Println("Failed to get public IP:", err)
 			fileLogger.Println("Failed to get public IP:", err)
 		} else {
 			err := updateDNSRecord(client, domainName, publicIP, config.RecordType, config.RR)
 			if err != nil {
 				if err != ErrNoUpdateNeeded {
+					log.Printf("Failed to update DNS record: %v\n", err)
 					fileLogger.Printf("Failed to update DNS record: %v\n", err)
 				}
 			} else {
