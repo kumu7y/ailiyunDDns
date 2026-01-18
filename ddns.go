@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
@@ -179,17 +180,26 @@ func main() {
 			log.Println("Failed to get public IP:", err)
 			fileLogger.Println("Failed to get public IP:", err)
 		} else {
-			err := updateDNSRecord(client, domainName, publicIP, config.RecordType, config.RR)
-			if err != nil {
-				if err != ErrNoUpdateNeeded {
-					log.Printf("Failed to update DNS record: %v\n", err)
-					fileLogger.Printf("Failed to update DNS record: %v\n", err)
+			// 支持多 rr，使用逗号分隔
+			rrs := strings.Split(config.RR, ",")
+			for _, r := range rrs {
+				// 去除首尾空白字符
+				currentRR := strings.TrimSpace(r)
+				if currentRR == "" {
+					continue
 				}
-			} else {
-				fileLogger.Println("DNS record updated successfully")
 
-				// 控制台输出
-				fmt.Println("DNS record updated successfully")
+				err := updateDNSRecord(client, domainName, publicIP, config.RecordType, currentRR)
+				if err != nil {
+					if err != ErrNoUpdateNeeded {
+						log.Printf("Failed to update DNS record for RR '%s': %v\n", currentRR, err)
+						fileLogger.Printf("Failed to update DNS record for RR '%s': %v\n", currentRR, err)
+					}
+				} else {
+					fileLogger.Printf("DNS record for RR '%s' updated successfully\n", currentRR)
+					// 控制台输出
+					fmt.Printf("DNS record for RR '%s' updated successfully\n", currentRR)
+				}
 			}
 		}
 
